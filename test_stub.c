@@ -30,11 +30,13 @@ int main(int argc, char **argv)
     char ac[10] = {1};
     struct func_stub stub;
 
+	#ifdef ORGSIZE 
 	if (-1 == stub_init())
 	{
 		printf("faild to init stub\n");
 		return 0;
 	}
+	#endif
 	
     stub_set(&stub, (void *)memset, (void *)_memset);
 

@@ -11,18 +11,23 @@
 #define PAGESET 1
  //2为啥不行呢，Segmentation fault (core dumped)
 #ifdef ORGSIZE  //原始大小，有时候不太好
-#define PAGELEN (PAGELEN)
+#define PAGELEN (pagesize * PAGESET)
 #else
 #define PAGELEN 1024
 #endif
 
 
 static long pagesize = -1;
+static struct func_stub *g_pRootStub = NULL;
 
+#ifdef ORGSIZE 
 static inline void *pageof(const void* p)
 { 
 	return (void *)((unsigned long)p & ~(pagesize - 1));
 }
+#else
+#define pageof(p) ((unsigned long)p & 0xFFFFF000)
+#endif
 
 
 
@@ -47,6 +52,11 @@ void stub_set(struct func_stub *pstub, void *fn, void *fn_stub)
         perror("mprotect to w+r+x faild");
         exit(errno);
     }
+    // if (-1 == mprotect(pageof(fn) + 0x1000, PAGELEN, PROT_READ | PROT_WRITE | PROT_EXEC))
+    // {
+        // perror("mprotect to w+r+x faild");
+        // exit(errno);
+    // }
 	
 	*(unsigned char *)fn = (unsigned char)0xE9;
     *(unsigned int *)((unsigned char *)fn + 1) = (unsigned char *)fn_stub - (unsigned char *)fn - CODESIZE;
@@ -56,6 +66,11 @@ void stub_set(struct func_stub *pstub, void *fn, void *fn_stub)
         perror("mprotect to r+x failed");
         exit(errno);
     }
+    // if (-1 == mprotect(pageof(fn) + 0x1000, PAGELEN, PROT_EXEC))
+    // {
+        // perror("mprotect to r+x failed");
+        // exit(errno);
+    // }
     
     return;
 }
@@ -72,6 +87,11 @@ void stub_reset(struct func_stub *pstub)
         perror("mprotect to w+r+x faild");
         exit(errno);
     }
+    // if (-1 == mprotect(pageof(pstub->fn) + 0x1000, PAGELEN, PROT_READ | PROT_WRITE | PROT_EXEC))
+    // {
+        // perror("mprotect to w+r+x faild");
+        // exit(errno);
+    // }
 	memcpy(pstub->fn, pstub->code_buf, CODESIZE);
     
     if (-1 == mprotect(pageof(pstub->fn), PAGELEN, PROT_EXEC))
@@ -79,6 +99,12 @@ void stub_reset(struct func_stub *pstub)
         perror("mprotect to r+x failed");
         exit(errno);
     }
+	
+    // if (-1 == mprotect(pageof(pstub->fn) + 0x1000, PAGELEN, PROT_EXEC))
+    // {
+        // perror("mprotect to r+x failed");
+        // exit(errno);
+    // }
 
 	memset(pstub, 0, sizeof(struct func_stub));
 	

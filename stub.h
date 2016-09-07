@@ -6,6 +6,10 @@ exern "C"
 {
 #endif
 
+#define ORGSIZE
+
+
+
 #define CODESIZE 5U
 
 struct func_stub
