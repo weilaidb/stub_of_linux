@@ -10,6 +10,12 @@
 
 #define PAGESET 1
  //2为啥不行呢，Segmentation fault (core dumped)
+#ifdef ORGSIZE  //原始大小，有时候不太好
+#define PAGELEN (PAGELEN)
+#else
+#define PAGELEN 1024
+#endif
+
 
 static long pagesize = -1;
 
@@ -18,12 +24,25 @@ static inline void *pageof(const void* p)
 	return (void *)((unsigned long)p & ~(pagesize - 1));
 }
 
+
+
+//可以做成单向链表的形式，保存g_StubFnList
+void install_stub(void *dest_fn, void *stub_fn)
+{
+	
+}
+
+void remove_stub(void *dest_fn, void *stub_fn)
+{
+	
+}
+
 void stub_set(struct func_stub *pstub, void *fn, void *fn_stub)
 {	
     pstub->fn = fn;
     memcpy(pstub->code_buf, fn, CODESIZE);
     
-    if (-1 == mprotect(pageof(fn), pagesize * PAGESET, PROT_READ | PROT_WRITE | PROT_EXEC))
+    if (-1 == mprotect(pageof(fn), PAGELEN, PROT_READ | PROT_WRITE | PROT_EXEC))
     {
         perror("mprotect to w+r+x faild");
         exit(errno);
@@ -32,7 +51,7 @@ void stub_set(struct func_stub *pstub, void *fn, void *fn_stub)
 	*(unsigned char *)fn = (unsigned char)0xE9;
     *(unsigned int *)((unsigned char *)fn + 1) = (unsigned char *)fn_stub - (unsigned char *)fn - CODESIZE;
     
-    if (-1 == mprotect(pageof(fn), pagesize * PAGESET, PROT_EXEC))
+    if (-1 == mprotect(pageof(fn), PAGELEN, PROT_EXEC))
     {
         perror("mprotect to r+x failed");
         exit(errno);
@@ -48,14 +67,14 @@ void stub_reset(struct func_stub *pstub)
 		return;
     }
     
-    if (-1 == mprotect(pageof(pstub->fn), pagesize * PAGESET, PROT_READ | PROT_WRITE | PROT_EXEC))
+    if (-1 == mprotect(pageof(pstub->fn), PAGELEN, PROT_READ | PROT_WRITE | PROT_EXEC))
     {
         perror("mprotect to w+r+x faild");
         exit(errno);
     }
 	memcpy(pstub->fn, pstub->code_buf, CODESIZE);
     
-    if (-1 == mprotect(pageof(pstub->fn), pagesize * PAGESET, PROT_EXEC))
+    if (-1 == mprotect(pageof(pstub->fn), PAGELEN, PROT_EXEC))
     {
         perror("mprotect to r+x failed");
         exit(errno);
